@@ -37,11 +37,12 @@ public class Robot extends TimedRobot {
 	// PIVOT code
 	private final CANSparkMax pivotMotor = new CANSparkMax(23, MotorType.kBrushless);
 
-	private final double pivotOutput = 0.65;
+	private final double pivotOutput = 0.25;
 	private final int pivotLimit = 20;
 
 	//function to set the arm output power in the vertical direction
 	public void setArmYAxisMotor(double percent) {
+		System.out.println("Setting percent to pivotMotor");
 		pivotMotor.set(percent);
 		SmartDashboard.putNumber("armYAxis power(%)", percent);
 	}
@@ -129,16 +130,19 @@ public class Robot extends TimedRobot {
 		// motion for the arm in the vertical direction
 		if (commandsController.getLeftY() > 0.5) {
 			//raise the arm
+			System.out.println("raising pivot");
 			pivotPower = pivotOutput;
 			//*pivotMotor.getLeftY();
 		}
 		else if (commandsController.getLeftY() < -0.5) {
 			//lower the arm
+			System.out.println("lowering pivot");
 			pivotPower = -pivotOutput;
 			//*pivotMotor.getLeftY();
 		}
 		else {
 			//do nothing and let it sit where it is
+			System.out.println("Doing nothing to pivot");
 			pivotPower = 0.0;
 			pivotMotor.setIdleMode(IdleMode. kBrake);
 		}
