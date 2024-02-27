@@ -4,9 +4,16 @@
 
 package frc.robot;
 
+import com.revrobotics.CANSparkMax;
+import com.revrobotics.CANSparkBase.IdleMode;
+import com.revrobotics.CANSparkBase.SoftLimitDirection;
+import com.revrobotics.CANSparkLowLevel.MotorType;
+
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.util.Alerts;
@@ -21,10 +28,29 @@ import frc.robot.util.Constants;
  */
 public class Robot extends TimedRobot {
 
+	private final XboxController commandsController = new XboxController(1);
+
 	private RobotContainer robotContainer;
 	private Command autonomousCommand;
 	private Timer disabledTimer;
 
+	// PIVOT code
+	private final CANSparkMax pivotMotor = new CANSparkMax(23, MotorType.kBrushless);
+
+	private final double pivotOutput = 0.65;
+	private final int pivotLimit = 20;
+
+	//function to set the arm output power in the vertical direction
+	public void setArmYAxisMotor(double percent) {
+		pivotMotor.set(percent);
+		SmartDashboard.putNumber("armYAxis power(%)", percent);
+	}
+
+	//function to set the arm output power in the horizontal direction
+	// public void setArmXAxisMotor(double percent) {
+	// 	armXAxis.set(percent);
+	// 	SmartDashboard.putNumber("armXaxis power(%)", percent);
+	// }
 	/**
 	 * This function is run when the robot is first started up and should be used for any
 	 * initialization code.
@@ -32,6 +58,17 @@ public class Robot extends TimedRobot {
 	@Override
 	public void robotInit () {
 
+		// initial conditions for arm
+		pivotMotor.setInverted(true);
+		pivotMotor.setIdleMode(IdleMode.kBrake);
+		pivotMotor.setSmartCurrentLimit(pivotLimit);
+		((CANSparkMax) pivotMotor).burnFlash();
+
+		// limit the direction of the arm's rotations (kReverse = up)
+		pivotMotor.enableSoftLimit(SoftLimitDirection.kForward, false);
+		pivotMotor.enableSoftLimit(SoftLimitDirection.kReverse, false);
+
+		// if bug with directly below, ignore and build
 		if (BuildConstants.DIRTY == 1) { Alerts.versionControl.set(true); }
 
 		this.robotContainer = new RobotContainer();
@@ -64,11 +101,59 @@ public class Robot extends TimedRobot {
 	}
 
 	@Override
-	public void teleopPeriodic () {}
+	public void teleopPeriodic () {
+		//Code for the arm
+		double pivotPower;
+
+		// // motion for the arm in the horizontal direction
+		// if (pivotMotor.getLeftTriggerAxis() > 0.5) {
+		// //extend the arm
+		// // we could set it to srmpower = armXOuptuPower x get left trigger axis ( test it on the pivot firs)
+		// pivotPower = ArmXOutputPower;
+		// //*pivotMotor.getLeftTriggerAxis();
+		// }
+		// else if (pivotMotor.getRightTriggerAxis() > 0.5) {
+		// //retract the arm
+		// pivotPower = -ArmXOutputPower;
+		// //*pivotMotor.getRightTriggerAxis();
+		// }
+		// else {
+		// // do nothing and let it sit where it is
+		// pivotPower = 0.0;
+		// //armXAxis.stopMotor();
+		// armXAxis.setNeutralMode(NeutralMode.Brake);
+		// }
+		// setArmXAxisMotor(pivotPower);
+
+
+		// motion for the arm in the vertical direction
+		if (commandsController.getLeftY() > 0.5) {
+			//raise the arm
+			pivotPower = pivotOutput;
+			//*pivotMotor.getLeftY();
+		}
+		else if (commandsController.getLeftY() < -0.5) {
+			//lower the arm
+			pivotPower = -pivotOutput;
+			//*pivotMotor.getLeftY();
+		}
+		else {
+			//do nothing and let it sit where it is
+			pivotPower = 0.0;
+			pivotMotor.setIdleMode(IdleMode. kBrake);
+		}
+		setArmYAxisMotor(pivotPower);
+		// Cancels all running commands at the start of test mode.
+		// double rollerPower;
+		// rollerPower = driverController.getLeftY() * 0.5;
+		// TopMotor.set(rollerPower);
+		// BottomMotor.set(rollerPower);
+	}
 
 	@Override
 	public void disabledInit () {
 
+		pivotMotor.set(0);
 		this.disabledTimer.reset();
 		this.disabledTimer.start();
 	}
